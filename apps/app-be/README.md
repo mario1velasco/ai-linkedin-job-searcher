@@ -1,4 +1,4 @@
-# APP-BE
+# app-be
 
 A Python **FastAPI** backend managed inside this Nx monorepo using the [`@nxlv/python`](https://github.com/lucasvieirasilva/nx-plugins) Nx plugin and [`uv`](https://docs.astral.sh/uv/) as the Python package manager.
 
@@ -17,17 +17,17 @@ apps/app-be/
 │   ├── conftest.py       # shared pytest fixtures/config for this project
 │   └── test_main.py
 ├── pyproject.toml        # Python project config: deps, pytest, ruff, build
-├── project.json          # Nx config: defines the `nx run APP-BE:<target>` commands
+├── project.json          # Nx config: defines the `nx run app-be:<target>` commands
 ├── .python-version       # pins the Python version (3.11.15) for this project
 └── uv.lock               # exact locked versions of every dependency (auto-generated, commit it)
 ```
 
-`app_be` is the *importable* package name (Python identifiers can't contain hyphens), while `APP-BE` is the Nx project name you use in `nx` commands.
+`app_be` is the *importable* package name (Python identifiers can't contain hyphens), while `app-be` is the Nx project name you use in `nx` commands.
 
 ## 0. Running the API
 
 ```bash
-npx nx run APP-BE:serve
+npx nx run app-be:serve
 ```
 
 This starts [`uvicorn`](https://www.uvicorn.org/) (an ASGI server — the Python equivalent of Node's HTTP server) with `--reload` enabled, serving on **http://localhost:8000**. Visit `http://localhost:8000/` and you'll get:
@@ -113,33 +113,33 @@ Nx doesn't understand Python natively, so [`@nxlv/python`](https://www.npmjs.com
   ```
   This just says "when I ask for a Python project, default to `uv`" — it has no effect on any JS/Angular projects in this repo.
 
-- **Per-project** in [`project.json`](project.json): defines the actual `targets` (commands) available for `APP-BE`, each one backed by an "executor" from the plugin (e.g. `@nxlv/python:install` runs `uv sync` under the hood).
+- **Per-project** in [`project.json`](project.json): defines the actual `targets` (commands) available for `app-be`, each one backed by an "executor" from the plugin (e.g. `@nxlv/python:install` runs `uv sync` under the hood).
 
 ### Available commands (targets)
 
 Run any of these from the **workspace root** (not from inside `apps/app-be`):
 
 ```bash
-npx nx run APP-BE:serve     # run the FastAPI app with hot-reload (see section 0)
-npx nx run APP-BE:install   # uv sync — install/update the venv from uv.lock
-npx nx run APP-BE:test      # run the pytest suite (see section 3)
-npx nx run APP-BE:lint      # ruff check — static lint
-npx nx run APP-BE:format    # ruff format — auto-format code
-npx nx run APP-BE:build     # build a wheel + sdist into apps/app-be/dist/
-npx nx run APP-BE:add       # add a new dependency (prompts for name)
-npx nx run APP-BE:update    # update a dependency
-npx nx run APP-BE:remove    # remove a dependency
-npx nx run APP-BE:lock      # regenerate uv.lock without installing
+npx nx run app-be:serve     # run the FastAPI app with hot-reload (see section 0)
+npx nx run app-be:install   # uv sync — install/update the venv from uv.lock
+npx nx run app-be:test      # run the pytest suite (see section 3)
+npx nx run app-be:lint      # ruff check — static lint
+npx nx run app-be:format    # ruff format — auto-format code
+npx nx run app-be:build     # build a wheel + sdist into apps/app-be/dist/
+npx nx run app-be:add       # add a new dependency (prompts for name)
+npx nx run app-be:update    # update a dependency
+npx nx run app-be:remove    # remove a dependency
+npx nx run app-be:lock      # regenerate uv.lock without installing
 ```
 
-Nx also lets you drop the project name shorthand-style: `npx nx test APP-BE`, `npx nx lint APP-BE`, etc. — `test`/`lint`/`build` are common target names Nx recognizes directly.
+Nx also lets you drop the project name shorthand-style: `npx nx test app-be`, `npx nx lint app-be`, etc. — `test`/`lint`/`build` are common target names Nx recognizes directly.
 
 ### Adding / removing a dependency (the recommended way)
 
 ```bash
-npx nx run APP-BE:add requests            # runtime dependency (positional arg = package name)
-npx nx run APP-BE:add mypy --group=dev     # dev-only dependency (a "dependency group")
-npx nx run APP-BE:remove --name=requests   # remove a dependency (note: --name, not positional here)
+npx nx run app-be:add requests            # runtime dependency (positional arg = package name)
+npx nx run app-be:add mypy --group=dev     # dev-only dependency (a "dependency group")
+npx nx run app-be:remove --name=requests   # remove a dependency (note: --name, not positional here)
 ```
 
 This updates `pyproject.toml` and `uv.lock` and installs/uninstalls it in `.venv`, all in one step.
@@ -179,7 +179,7 @@ FastAPI's `TestClient` simulates HTTP requests against your `app` in-process —
 ### Running the tests
 
 ```bash
-npx nx run APP-BE:test
+npx nx run app-be:test
 ```
 
 Under the hood ([`project.json`](project.json)) this runs:
@@ -222,7 +222,7 @@ def test_health_check():
 Then rerun:
 
 ```bash
-npx nx run APP-BE:test
+npx nx run app-be:test
 ```
 
 ### Fixtures (`conftest.py`)
@@ -247,13 +247,13 @@ Any test function that takes `sample_data` as an argument automatically receives
 ## Cheat sheet
 
 ```bash
-npx nx run APP-BE:serve     # run the API with hot-reload at http://localhost:8000
-npx nx run APP-BE:install   # first thing to run after cloning / adding a dependency by hand
-npx nx run APP-BE:test      # run tests + coverage
-npx nx run APP-BE:lint      # check code style
-npx nx run APP-BE:format    # auto-fix code style
-npx nx run APP-BE:build     # produce a distributable wheel
-npx nx run APP-BE:add <package>                  # add a runtime dependency
-npx nx run APP-BE:add <package> --group=dev       # add a dev-only dependency
-npx nx run APP-BE:remove --name=<package>         # remove a dependency
+npx nx run app-be:serve     # run the API with hot-reload at http://localhost:8000
+npx nx run app-be:install   # first thing to run after cloning / adding a dependency by hand
+npx nx run app-be:test      # run tests + coverage
+npx nx run app-be:lint      # check code style
+npx nx run app-be:format    # auto-fix code style
+npx nx run app-be:build     # produce a distributable wheel
+npx nx run app-be:add <package>                  # add a runtime dependency
+npx nx run app-be:add <package> --group=dev       # add a dev-only dependency
+npx nx run app-be:remove --name=<package>         # remove a dependency
 ```
