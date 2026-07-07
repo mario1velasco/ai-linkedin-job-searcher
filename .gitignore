@@ -31,7 +31,8 @@ target/
 
 # IDEs and editors
 .idea/
-.vscode/
+.vscode/*
+!.vscode/settings.json
 *.sublime-workspace
 *.sublime-project
 

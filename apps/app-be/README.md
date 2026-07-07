@@ -1,6 +1,6 @@
 # APP-BE
 
-A Python application managed inside this Nx monorepo using the [`@nxlv/python`](https://github.com/lucasvieirasilva/nx-plugins) Nx plugin and [`uv`](https://docs.astral.sh/uv/) as the Python package manager.
+A Python **FastAPI** backend managed inside this Nx monorepo using the [`@nxlv/python`](https://github.com/lucasvieirasilva/nx-plugins) Nx plugin and [`uv`](https://docs.astral.sh/uv/) as the Python package manager.
 
 This README is written for someone new to Python — it explains the tools, where things live on disk, and how to run/write tests.
 
@@ -11,11 +11,11 @@ apps/app-be/
 ├── src/
 │   └── app_be/          # your actual Python package (the code you write)
 │       ├── __init__.py
-│       └── hello.py
+│       └── main.py      # FastAPI app + routes
 ├── tests/                # pytest test files
 │   ├── __init__.py
 │   ├── conftest.py       # shared pytest fixtures/config for this project
-│   └── test_hello.py
+│   └── test_main.py
 ├── pyproject.toml        # Python project config: deps, pytest, ruff, build
 ├── project.json          # Nx config: defines the `nx run APP-BE:<target>` commands
 ├── .python-version       # pins the Python version (3.11.15) for this project
@@ -23,6 +23,38 @@ apps/app-be/
 ```
 
 `app_be` is the *importable* package name (Python identifiers can't contain hyphens), while `APP-BE` is the Nx project name you use in `nx` commands.
+
+## 0. Running the API
+
+```bash
+npx nx run APP-BE:serve
+```
+
+This starts [`uvicorn`](https://www.uvicorn.org/) (an ASGI server — the Python equivalent of Node's HTTP server) with `--reload` enabled, serving on **http://localhost:8000**. Visit `http://localhost:8000/` and you'll get:
+
+```json
+{"message": "Hello World"}
+```
+
+`--reload` means the server watches `src/` for file changes and automatically restarts itself whenever you save — you never have to stop/start it manually while developing. It keeps running in your terminal until you press `Ctrl+C`.
+
+FastAPI also gives you free interactive API docs while the server is running: **http://localhost:8000/docs**.
+
+The route itself lives in [`src/app_be/main.py`](src/app_be/main.py):
+
+```python
+from fastapi import FastAPI
+
+app = FastAPI()
+
+
+@app.get("/")
+def read_root() -> dict[str, str]:
+    """Return a friendly greeting."""
+    return {"message": "Hello World"}
+```
+
+To add a new endpoint, add another `@app.get(...)` (or `@app.post`, `@app.put`, ...) function in this file — FastAPI auto-discovers it as soon as the file is saved (thanks to `--reload`).
 
 ## 1. What is `uv`?
 
@@ -88,6 +120,7 @@ Nx doesn't understand Python natively, so [`@nxlv/python`](https://www.npmjs.com
 Run any of these from the **workspace root** (not from inside `apps/app-be`):
 
 ```bash
+npx nx run APP-BE:serve     # run the FastAPI app with hot-reload (see section 0)
 npx nx run APP-BE:install   # uv sync — install/update the venv from uv.lock
 npx nx run APP-BE:test      # run the pytest suite (see section 3)
 npx nx run APP-BE:lint      # ruff check — static lint
@@ -125,18 +158,23 @@ This project uses [`pytest`](https://docs.pytest.org/), the standard Python test
 - Test functions inside those files are named `test_*`.
 - You assert with the plain `assert` keyword — no special matcher library needed.
 
-Example — [`tests/test_hello.py`](tests/test_hello.py):
+Example — [`tests/test_main.py`](tests/test_main.py):
 
 ```python
-from app_be.hello import hello
+from fastapi.testclient import TestClient
+
+from app_be.main import app
+
+client = TestClient(app)
 
 
-def test_hello():
-    """Test the hello function."""
-    assert hello() == "Hello APP-BE"
+def test_read_root():
+    response = client.get("/")
+    assert response.status_code == 200
+    assert response.json() == {"message": "Hello World"}
 ```
 
-This imports the real function from `src/app_be/hello.py` and checks its return value. If the assertion is false, pytest fails the test and shows you exactly which values didn't match.
+FastAPI's `TestClient` simulates HTTP requests against your `app` in-process — no real server/socket needed, so tests stay fast. If the assertion is false, pytest fails the test and shows you exactly which values didn't match.
 
 ### Running the tests
 
@@ -164,22 +202,21 @@ Configured in [`pyproject.toml`](pyproject.toml) under `[tool.pytest.ini_options
 
 ### Writing a new test
 
-Say you add a function to `src/app_be/hello.py`:
+Say you add a new endpoint to `src/app_be/main.py`:
 
 ```python
-def add(a: int, b: int) -> int:
-    """Add two numbers."""
-    return a + b
+@app.get("/health")
+def health_check() -> dict[str, str]:
+    return {"status": "ok"}
 ```
 
-Add a test in `tests/test_hello.py` (or a new `tests/test_<something>.py` file):
+Add a test in `tests/test_main.py` (or a new `tests/test_<something>.py` file):
 
 ```python
-from app_be.hello import add
-
-
-def test_add():
-    assert add(2, 3) == 5
+def test_health_check():
+    response = client.get("/health")
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}
 ```
 
 Then rerun:
@@ -210,6 +247,7 @@ Any test function that takes `sample_data` as an argument automatically receives
 ## Cheat sheet
 
 ```bash
+npx nx run APP-BE:serve     # run the API with hot-reload at http://localhost:8000
 npx nx run APP-BE:install   # first thing to run after cloning / adding a dependency by hand
 npx nx run APP-BE:test      # run tests + coverage
 npx nx run APP-BE:lint      # check code style

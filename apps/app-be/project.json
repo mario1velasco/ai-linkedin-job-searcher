@@ -75,6 +75,13 @@
         "verbose": false,
         "debug": false
       }
+    },
+    "serve": {
+      "executor": "@nxlv/python:run-commands",
+      "options": {
+        "command": "uv run uvicorn app_be.main:app --reload --reload-dir=src --host 0.0.0.0 --port 8000",
+        "cwd": "{projectRoot}"
+      }
     }
   },
   "tags": [],
