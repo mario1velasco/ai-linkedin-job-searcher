@@ -1,6 +1,14 @@
 {
   "$schema": "./node_modules/nx/schemas/nx-schema.json",
   "analytics": false,
+  "plugins": [
+    {
+      "plugin": "@nxlv/python",
+      "options": {
+        "packageManager": "uv"
+      }
+    }
+  ],
   "namedInputs": {
     "default": [
       "{projectRoot}/**/*",
