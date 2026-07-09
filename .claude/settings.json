@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Read(*)",
-      "Bash(*)"
+      "Bash(*)",
+      "Bash(.venv/bin/python src/app_be/oauth_linkdln.py)",
+      "Bash(git check-ignore *)"
     ]
   }
 }

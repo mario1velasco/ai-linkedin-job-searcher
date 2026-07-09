@@ -29,6 +29,9 @@ target/
 .local
 .firebase
 
+# OAuth callback data
+callback_data.yaml
+
 # IDEs and editors
 .idea/
 .vscode/*
