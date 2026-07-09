@@ -4,7 +4,9 @@
       "Read(*)",
       "Bash(*)",
       "Bash(.venv/bin/python src/app_be/oauth_linkdln.py)",
-      "Bash(git check-ignore *)"
+      "Bash(git check-ignore *)",
+      "Bash(npx nx *)",
+      "Bash(uv run *)"
     ]
   }
 }

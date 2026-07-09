@@ -32,6 +32,9 @@ target/
 # OAuth callback data
 callback_data.yaml
 
+# Scraped LinkedIn job data
+apps/app-be/src/app_be/data/
+
 # IDEs and editors
 .idea/
 .vscode/*

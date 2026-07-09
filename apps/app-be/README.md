@@ -244,6 +244,21 @@ def test_something(sample_data):
 
 Any test function that takes `sample_data` as an argument automatically receives the fixture's return value.
 
+## LinkedIn job search (`GET /jobs/linkedin`)
+
+LinkedIn has no public API for job search, so this endpoint authenticates using your own logged-in browser session instead of the OAuth token (which only grants identity scopes). This is unofficial (against LinkedIn's Terms of Service) — use at your own risk.
+
+Add these to the root `.env` file, copied from your browser after logging into linkedin.com (DevTools → Application/Storage → Cookies → `https://www.linkedin.com`):
+
+```
+LI_AT_COOKIE=<value of the li_at cookie>
+JSESSIONID=<value of the JSESSIONID cookie>
+```
+
+These cookies expire periodically (typically after about a year, sooner if LinkedIn flags unusual activity) — if the endpoint starts returning a 502, refresh both values from your browser.
+
+Calling `GET /jobs/linkedin` (params: `keywords`, `geo_id`, `distance`, `hours`, `remote`, `salary_bucket`) fetches matching jobs and writes prettified JSON to `apps/app-be/src/app_be/data/linkedin_data.json` (gitignored), as well as returning it in the response.
+
 ## Cheat sheet
 
 ```bash
