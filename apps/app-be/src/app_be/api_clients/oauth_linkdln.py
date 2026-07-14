@@ -1,5 +1,4 @@
 import json
-import os
 import secrets
 import webbrowser
 from pathlib import Path
@@ -9,6 +8,8 @@ import requests
 import yaml
 from dotenv import load_dotenv
 
+from app_be.config import CLIENT_ID, CLIENT_SECRET, REDIRECT_URI
+
 load_dotenv()
 
 CALLBACK_DATA_PATH = Path(__file__).resolve().parent / "callback_data.yaml"
@@ -16,8 +17,8 @@ CALLBACK_DATA_PATH = Path(__file__).resolve().parent / "callback_data.yaml"
 state = secrets.token_urlsafe()
 params = {
     "response_type": "code",
-    "client_id": os.environ["CLIENT_ID"],
-    "redirect_uri": os.environ["REDIRECT_URI"],
+    "client_id": CLIENT_ID,
+    "redirect_uri": REDIRECT_URI,
     "state": state,
     "scope": "openid profile email",
 }
@@ -37,9 +38,9 @@ with open(CALLBACK_DATA_PATH) as file:
 params = {
     "grant_type": "authorization_code",
     "code": callback_data["code"],
-    "client_id": os.environ["CLIENT_ID"],
-    "client_secret": os.environ["CLIENT_SECRET"],
-    "redirect_uri": os.environ["REDIRECT_URI"],
+    "client_id": CLIENT_ID,
+    "client_secret": CLIENT_SECRET,
+    "redirect_uri": REDIRECT_URI,
 }
 
 response = requests.post("https://www.linkedin.com/oauth/v2/accessToken", data=params)
