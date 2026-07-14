@@ -2,7 +2,11 @@ from unittest.mock import patch
 
 import pytest
 
-from app_be.linkedin_jobs import _build_query, _flatten_job_cards, _get_linkedin_cookies
+from app_be.api_clients.linkedin_jobs import (
+    _build_query,
+    _flatten_job_cards,
+    _get_linkedin_cookies,
+)
 
 
 def test_build_query_basic():
@@ -121,8 +125,11 @@ def test_get_linkedin_cookies_raises_when_nothing_available(monkeypatch):
     monkeypatch.delenv("LI_AT_COOKIE", raising=False)
     monkeypatch.delenv("JSESSIONID", raising=False)
 
-    with patch(
-        "app_be.linkedin_jobs.browser_cookie3.load",
-        side_effect=RuntimeError("no browser"),
-    ), pytest.raises(RuntimeError):
+    with (
+        patch(
+            "app_be.linkedin_jobs.browser_cookie3.load",
+            side_effect=RuntimeError("no browser"),
+        ),
+        pytest.raises(RuntimeError),
+    ):
         _get_linkedin_cookies()

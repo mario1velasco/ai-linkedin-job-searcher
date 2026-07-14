@@ -6,7 +6,9 @@
       "Bash(.venv/bin/python src/app_be/oauth_linkdln.py)",
       "Bash(git check-ignore *)",
       "Bash(npx nx *)",
-      "Bash(uv run *)"
+      "Bash(uv run *)",
+      "Bash(python -c \"import ast; ast.parse\\(open\\('src/app_be/main.py'\\).read\\(\\)\\); ast.parse\\(open\\('src/app_be/linkedin_jobs.py'\\).read\\(\\)\\); print\\('OK'\\)\")",
+      "Bash(python -c ' *)"
     ]
   }
 }
