@@ -106,6 +106,16 @@ def search_jobs(
     count: int = 25,
 ) -> list[dict]:
     logger.info(
+        "Searching LinkedIn jobs (keywords=%r, geo_id=%s, distance=%s, hours=%s, "
+        "remote=%s, salary_bucket=%s)",
+        keywords,
+        geo_id,
+        distance,
+        hours,
+        remote,
+        salary_bucket,
+    )
+    logger.info(
         "Building LinkedIn Voyager session for job search (keywords=%r)", keywords
     )
     session = _build_session()

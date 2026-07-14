@@ -90,16 +90,7 @@ def search_linkedin_jobs(
     remote: bool = True,
     salary_bucket: str | None = None,
 ):
-    logger.info(
-        "Searching LinkedIn jobs (keywords=%r, geo_id=%s, distance=%s, hours=%s, "
-        "remote=%s, salary_bucket=%s)",
-        keywords,
-        geo_id,
-        distance,
-        hours,
-        remote,
-        salary_bucket,
-    )
+
     try:
         jobs = linkedin_jobs.search_jobs(
             keywords=keywords,
