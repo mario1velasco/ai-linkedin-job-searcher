@@ -28,6 +28,9 @@ dependencies = [
     "pyyaml>=6.0.3",
     "python-dotenv>=1.2.1",
     "browser-cookie3>=0.20.1",
+    "openai>=1.0.0",
+    "azure-ai-projects>=2.1.0",
+    "azure-identity>=1.19.0",
 ]
 
 
