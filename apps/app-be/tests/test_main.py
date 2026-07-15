@@ -22,9 +22,10 @@ def test_search_linkedin_jobs_writes_file_and_returns_jobs(tmp_path):
 
     with (
         patch(
-            "app_be.main.linkedin_jobs.search_jobs", return_value=fake_jobs
+            "app_be.main.linkedin_service.linkedin_client.search_jobs",
+            return_value=fake_jobs,
         ) as mock_search,
-        patch("app_be.main.LINKEDIN_DATA_PATH", data_path),
+        patch("app_be.main.linkedin_service.LINKEDIN_DATA_PATH", data_path),
     ):
         response = client.get("/linkedin/jobs?keywords=Angular")
 
@@ -36,7 +37,7 @@ def test_search_linkedin_jobs_writes_file_and_returns_jobs(tmp_path):
 
 def test_search_linkedin_jobs_returns_502_on_expired_session():
     with patch(
-        "app_be.main.linkedin_jobs.search_jobs",
+        "app_be.main.linkedin_service.linkedin_client.search_jobs",
         side_effect=RuntimeError("LinkedIn Voyager API returned 401."),
     ):
         response = client.get("/linkedin/jobs")

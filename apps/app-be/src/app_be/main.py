@@ -1,18 +1,12 @@
 """FastAPI application entrypoint."""
 
-import json
-from pathlib import Path
-
 import requests
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-from app_be.api_clients import linkedin_jobs
+from app_be.services import linkedin_service
 from app_be.utils.logger import get_logger, setup_logging
-
-CALLBACK_DATA_PATH = Path(__file__).resolve().parent / "callback_data.yaml"
-LINKEDIN_DATA_PATH = Path(__file__).resolve().parent / "data" / "linkedin_data.json"
 
 setup_logging()
 logger = get_logger(__name__)
@@ -79,7 +73,7 @@ def update_user(user_id: int, user_data: UserData):
 def linkedin_login():
     """Initiate the LinkedIn OAuth flow and retrieve an access token."""
     logger.info("Initiating LinkedIn OAuth login flow")
-    linkedin_jobs.linkedln_login()
+    linkedin_service.login()
     return {"message": "LinkedIn login initiated. Please check your browser."}
 
 
@@ -88,7 +82,9 @@ def callback(code: str, state: str):
     """Handle the OAuth callback and exchange the code for an access token."""
     logger.info("Received OAuth callback (state=%s)", state)
     try:
-        app.state.linkedin_access_token = linkedin_jobs.callback(code, state)
+        app.state.linkedin_access_token = linkedin_service.handle_oauth_callback(
+            code, state
+        )
     except ValueError:
         logger.warning("OAuth callback rejected: state mismatch (state=%s)", state)
         raise
@@ -107,17 +103,7 @@ def get_linkedin_userinfo():
     if not app.state.linkedin_access_token:
         logger.warning("Userinfo requested but no LinkedIn access token is set")
         raise HTTPException(status_code=401, detail="Not authenticated with LinkedIn.")
-    response = requests.get(
-        "https://api.linkedin.com/v2/userinfo",
-        headers={"Authorization": f"Bearer {app.state.linkedin_access_token}"},
-    )
-    if not response.ok:
-        logger.error(
-            "LinkedIn userinfo request failed with status %s", response.status_code
-        )
-    else:
-        logger.info("Fetched LinkedIn userinfo successfully")
-    return response.json()
+    return linkedin_service.get_userinfo(app.state.linkedin_access_token)
 
 
 @app.get("/linkedin/jobs")
@@ -131,7 +117,7 @@ def search_linkedin_jobs(
 ):
 
     try:
-        jobs = linkedin_jobs.search_jobs(
+        jobs = linkedin_service.search_jobs(
             keywords=keywords,
             geo_id=geo_id,
             distance=distance,
@@ -142,12 +128,5 @@ def search_linkedin_jobs(
     except RuntimeError as error:
         logger.error("LinkedIn job search failed: %s", error)
         raise HTTPException(status_code=502, detail=str(error)) from error
-
-    logger.info("Found %d LinkedIn jobs", len(jobs))
-
-    LINKEDIN_DATA_PATH.parent.mkdir(parents=True, exist_ok=True)
-    with open(LINKEDIN_DATA_PATH, "w") as file:
-        json.dump(jobs, file, indent=2)
-    logger.debug("Wrote LinkedIn job results to %s", LINKEDIN_DATA_PATH)
 
     return jobs

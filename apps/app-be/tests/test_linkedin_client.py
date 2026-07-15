@@ -2,7 +2,7 @@ from unittest.mock import patch
 
 import pytest
 
-from app_be.api_clients.linkedin_jobs import (
+from app_be.api_clients.linkedin_client import (
     _build_query,
     _flatten_job_cards,
     _get_linkedin_cookies,

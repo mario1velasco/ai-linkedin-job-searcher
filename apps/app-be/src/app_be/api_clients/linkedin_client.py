@@ -1,8 +1,8 @@
 """Client for LinkedIn's internal (undocumented) "Voyager" API.
 
 LinkedIn has no public job-search API for regular OAuth apps - the OAuth flow
-in oauth_linkdln.py only grants identity scopes (openid profile email). This
-module instead authenticates with the user's own logged-in browser session
+in this module only grants identity scopes (openid profile email). Job search
+instead authenticates with the user's own logged-in browser session
 (the `li_at` / `JSESSIONID` cookies) and calls the same internal endpoint
 LinkedIn's own web app uses. The endpoint path, params, and response shape are
 undocumented, reverse-engineered, and may change or need adjustment once
@@ -92,6 +92,21 @@ def callback(code: str, state: str) -> str:
 
     logger.info("LinkedIn access token exchange succeeded")
     return response.json()["access_token"]
+
+
+def get_userinfo(access_token: str) -> dict:
+    """Fetch the authenticated user's LinkedIn profile via the OpenID userinfo endpoint."""
+    response = requests.get(
+        "https://api.linkedin.com/v2/userinfo",
+        headers={"Authorization": f"Bearer {access_token}"},
+    )
+    if not response.ok:
+        logger.error(
+            "LinkedIn userinfo request failed with status %s", response.status_code
+        )
+    else:
+        logger.info("Fetched LinkedIn userinfo successfully")
+    return response.json()
 
 
 def search_jobs(

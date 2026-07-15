@@ -9,9 +9,15 @@ This README is written for someone new to Python — it explains the tools, wher
 ```
 apps/app-be/
 ├── src/
-│   └── app_be/          # your actual Python package (the code you write)
+│   └── app_be/            # your actual Python package (the code you write)
 │       ├── __init__.py
-│       └── main.py      # FastAPI app + routes
+│       ├── main.py        # FastAPI app + routes (the "entry" layer)
+│       ├── services/      # business logic (the "what to do" layer)
+│       ├── api_clients/   # calls to external providers, e.g. LinkedIn (the "how to talk to it" layer)
+│       ├── config.py      # the only place that reads environment variables
+│       ├── scripts/       # one-off tasks: cron jobs, manual scripts
+│       ├── utils/         # reusable, cross-cutting code (e.g. logger.py)
+│       └── README.md      # architecture rules for this package — read this before adding code
 ├── tests/                # pytest test files
 │   ├── __init__.py
 │   ├── conftest.py       # shared pytest fixtures/config for this project
@@ -23,6 +29,26 @@ apps/app-be/
 ```
 
 `app_be` is the *importable* package name (Python identifiers can't contain hyphens), while `app-be` is the Nx project name you use in `nx` commands.
+
+## Architecture: `main` → `services` → `api_clients`
+
+Every feature in this backend flows through three layers, each with a single responsibility:
+
+```
+main.py  ──▶  services/  ──▶  api_clients/  ──▶  external provider (LinkedIn, OpenAI, Stripe...)
+(routes)      (business        (HTTP calls to
+               logic)           external APIs)
+```
+
+| Layer | Folder | Responsibility |
+|---|---|---|
+| Entry | `main.py` | Defines endpoints, validates the request (Pydantic), calls the matching service, turns the result into an HTTP response |
+| Business | `services/` | Decides *what* to do and in what order; combines data from one or more `api_clients` |
+| Integration | `api_clients/` | Knows how to talk to *one* external provider: builds the request, authenticates, parses the response |
+
+The point of the split: if you swap providers (e.g. a different payment processor), you only touch the corresponding module in `api_clients/` — `main.py` and `services/` don't know or care which provider is behind the interface.
+
+See [`src/app_be/README.md`](src/app_be/README.md) for the full rules on what goes in each layer (also meant to guide AI-generated code in this package). The LinkedIn endpoints below (`services/linkedin_service.py` → `api_clients/linkedin_client.py`) are the reference implementation of this pattern.
 
 ## 0. Running the API
 
