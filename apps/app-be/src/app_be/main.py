@@ -6,6 +6,7 @@ from pathlib import Path
 import requests
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field
 
 from app_be.api_clients import linkedin_jobs
 from app_be.utils.logger import get_logger, setup_logging
@@ -39,6 +40,49 @@ def read_greetings(name: str):
     return {"message": f"Hello, {name}!"}
 
 
+# ****** EJEMPL ENDPOINTS PARA VALIDAR DATOS DE ENTRADA Y SALIDA CON PYDANTIC ******
+# ! Pydantic. Se hace para validar los datos de entrada y salida. Se puede usar para validar la entrada de datos en un endpoint.
+class UserData(BaseModel):
+    name: str = Field(min_length=3, max_length=100)
+    age: int = Field(ge=0, le=120)
+
+
+user_database: dict[int, UserData] = {}  # Simulated in-memory database
+
+
+@app.post("/user/{user_id}")
+# ! user_id es un path parameter, user_data es un body parameter
+def update_user(user_id: int, user_data: UserData):
+    """Update user data."""
+    user = user_database.get(user_id)
+    if user is None:
+        logger.info("Creating new user with ID %d", user_id)
+    else:
+        logger.info("Updating existing user with ID %d", user_id)
+    user_database[user_id] = user_data
+    return {
+        "message": "User data updated successfully",
+        "user_id": user_id,
+        "user_data": user_data.model_dump(),
+    }
+
+
+# ****** EJEMPL ENDPOINTS PARA VALIDAR DATOS DE ENTRADA Y SALIDA CON PYDANTIC ******
+
+# ***** EJEMPLO DE ENDPOINTS PARA OAUTH CON LINKEDIN ******
+# * 1. Iniciar el flujo de OAuth con LinkedIn. Endpoint: /linkedin/login
+# * 2. Una vez que el usuario autoriza la aplicación, LinkedIn redirige al endpoint de callback con un código de autorización.
+# * 3. El endpoint de callback intercambia el código de autorización por un token de acceso.
+
+
+@app.get("/linkedin/login")
+def linkedin_login():
+    """Initiate the LinkedIn OAuth flow and retrieve an access token."""
+    logger.info("Initiating LinkedIn OAuth login flow")
+    linkedin_jobs.linkedln_login()
+    return {"message": "LinkedIn login initiated. Please check your browser."}
+
+
 @app.get("/callback")
 def callback(code: str, state: str):
     """Handle the OAuth callback and exchange the code for an access token."""
@@ -55,12 +99,7 @@ def callback(code: str, state: str):
     return {"message": "Callback received. You can close this window."}
 
 
-@app.get("/linkedin/login")
-def linkedin_login():
-    """Initiate the LinkedIn OAuth flow and retrieve an access token."""
-    logger.info("Initiating LinkedIn OAuth login flow")
-    linkedin_jobs.linkedln_login()
-    return {"message": "LinkedIn login initiated. Please check your browser."}
+# ***** EJEMPLOS DE ENDPOINTS PARA OAUTH CON LINKEDIN ******
 
 
 @app.get("/linkedin/userinfo")

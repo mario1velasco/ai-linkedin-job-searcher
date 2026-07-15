@@ -20,13 +20,7 @@ import browser_cookie3
 import requests
 import yaml
 
-from app_be.config import (
-    CLIENT_ID,
-    CLIENT_SECRET,
-    JSESSIONID,
-    LI_AT_COOKIE,
-    REDIRECT_URI,
-)
+from app_be.config import CLIENT_ID, CLIENT_SECRET, REDIRECT_URI
 from app_be.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -39,6 +33,10 @@ DECORATION_ID = (
 STATE = secrets.token_urlsafe()
 
 
+# *** Iniciar el flujo de OAuth con LinkedIn ***
+# ** Se genera un estado aleatorio para proteger contra ataques CSRF
+# ** Se construye la URL de autorización con los parámetros necesarios
+# ** Se abre la URL en el navegador para que el usuario inicie sesión y autorice la aplicación
 def linkedln_login():
     """Initiate the LinkedIn OAuth flow and retrieve an access token."""
 
@@ -122,17 +120,30 @@ def search_jobs(
     query = _build_query(keywords, geo_id, distance, hours, remote, salary_bucket)
     logger.debug("Built Voyager query: %s", query)
 
-    response = session.get(
-        VOYAGER_JOB_CARDS_URL,
-        params={
-            "decorationId": DECORATION_ID,
-            "count": count,
-            "q": "jobSearch",
-            "query": query,
-            "start": 0,
-        },
-        timeout=15,
-    )
+    try:
+        # ! There is not way to make this request. I cannot find the way to get the proper URL
+        response = session.get(
+            VOYAGER_JOB_CARDS_URL,
+            params={
+                "decorationId": DECORATION_ID,
+                "count": count,
+                "q": "jobSearch",
+                "query": query,
+                "start": 0,
+            },
+            timeout=15,
+        )
+    except requests.exceptions.TooManyRedirects as error:
+        logger.error(
+            "LinkedIn Voyager API redirected repeatedly - "
+            "session cookies likely expired"
+        )
+        raise RuntimeError(
+            "LinkedIn kept redirecting instead of returning job data (likely to a "
+            "login/checkpoint page). The li_at/JSESSIONID session cookies have "
+            "likely expired - log into linkedin.com in a browser and refresh "
+            "them in .env."
+        ) from error
     logger.debug("Voyager API responded with status %s", response.status_code)
 
     if response.status_code != 200:
@@ -152,6 +163,37 @@ def search_jobs(
 
 
 # * PRIVATE HELPERS
+# browser_cookie3.load() tries every supported browser (including Arc) and
+# only catches its own BrowserCookieError - Arc's cookie-path lookup raises a
+# raw TypeError when Arc isn't set up, which isn't caught, and that crashes
+# the whole load() call even after it already found cookies in an earlier
+# browser. Trying each browser we actually care about ourselves, with a
+# broad except per browser, avoids one broken browser killing the others.
+_BROWSER_COOKIE_LOADERS = (
+    browser_cookie3.chrome,
+    browser_cookie3.firefox,
+    browser_cookie3.edge,
+    browser_cookie3.brave,
+    browser_cookie3.vivaldi,
+    browser_cookie3.opera,
+)
+
+
+def _load_browser_cookies(domain_name: str) -> dict[str, str]:
+    cookies: dict[str, str] = {}
+    for loader in _BROWSER_COOKIE_LOADERS:
+        try:
+            for cookie in loader(domain_name=domain_name):
+                cookies[cookie.name] = cookie.value
+        except Exception:  # noqa: BLE001 - browser access is inherently unreliable
+            logger.debug(
+                "Could not read LinkedIn cookies from %s",
+                loader.__name__,
+                exc_info=True,
+            )
+    return cookies
+
+
 def _get_linkedin_cookies() -> tuple[str, str]:
     """Get the li_at/JSESSIONID cookies, preferring the local browser session.
 
@@ -161,37 +203,20 @@ def _get_linkedin_cookies() -> tuple[str, str]:
     back to LI_AT_COOKIE/JSESSIONID in .env if that fails (e.g. no local
     browser profile, or running somewhere other than your own machine).
     """
-    try:
-        cookie_jar = browser_cookie3.load(domain_name="linkedin.com")
-        cookies = {cookie.name: cookie.value for cookie in cookie_jar}
-        li_at = cookies.get("li_at")
-        jsessionid = cookies.get("JSESSIONID")
-        if li_at and jsessionid:
-            logger.info("Using LinkedIn session cookies from local browser")
-            return li_at, jsessionid
-        logger.warning(
-            "Local browser has no LinkedIn session cookies; falling back to .env"
-        )
-    except Exception:  # noqa: BLE001 - browser access is inherently unreliable
-        logger.warning(
-            "Could not read LinkedIn cookies from local browser; falling back to .env",
-            exc_info=True,
-        )
-
-    try:
-        li_at, jsessionid = LI_AT_COOKIE, JSESSIONID
-        if not li_at or not jsessionid:
-            raise KeyError("LI_AT_COOKIE or JSESSIONID not set in .env")
-        logger.info("Using LinkedIn session cookies from .env")
+    cookies = _load_browser_cookies("linkedin.com")
+    li_at = cookies.get("li_at")
+    jsessionid = cookies.get("JSESSIONID")
+    if li_at and jsessionid:
+        logger.info("Using LinkedIn session cookies from local browser")
         return li_at, jsessionid
-    except KeyError as error:
-        logger.error("No LinkedIn session cookies available from browser or .env")
+    else:
+        logger.error(
+            "Could not find LinkedIn cookies in local browser - we return error"
+        )
         raise RuntimeError(
-            "Could not find LinkedIn session cookies in your local browser, "
-            "and LI_AT_COOKIE/JSESSIONID are not set in .env either. Log "
-            "into linkedin.com in a supported browser (Chrome/Firefox/Edge), "
-            "or set both env vars manually."
-        ) from error
+            "Could not find LinkedIn session cookies in your local browser. "
+            "Log into linkedin.com in a supported browser (Chrome/Firefox/Edge)."
+        )
 
 
 def _build_session() -> requests.Session:
@@ -227,7 +252,9 @@ def _build_query(
     salary_bucket: str | None,
 ) -> str:
     """Build the query string for the LinkedIn Voyager API."""
-    filters = [f"distance:List({distance})", f"timePostedRange:List(r{hours * 3600})"]
+    filters = [f"timePostedRange:List(r{hours * 3600})"]
+    if distance:
+        filters.append(f"distance:List({int(distance)})")
     if remote:
         filters.append("workplaceType:List(2)")
     if salary_bucket:
